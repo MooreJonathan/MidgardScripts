@@ -3,27 +3,36 @@ function trafficDataClean() {
   var dataRange = sheet.getDataRange();
   var data = dataRange.getValues();
 
-  let trimmedData = [];
-  for (let i = 0; i < data.length; i++ ) {
-    //piece up the data
-    let url = data[i][0];
-    let parts = url.split('/');
-    let valueA = data[i][1];
-    let valueB = data[i][2];
-
-    // put the data back in
-    if (parts[1].includes('locations')){
-      trimmedData.push(['/'+parts[1]+'/'+parts[2], valueA, valueB]);
-    }
-    else 
-      trimmedData.push(['/locations'+'/'+parts[1], valueA, valueB]);
+  // Nuke rows that contain the keyword!
+  let afterNuke = [];
+  let check = ["area", "blog", "locations", "boat-rv", "business", "contact us", "faq", "find-storage", "test"];
+  for (let i = 0; i < data.length; i++) {
+      let url = data[i][0];
+      let valueA = data[i][1];
+      let valueB = data[i][2];
+      let filter = check.some(keyword => url.includes(keyword));
+      if (!filter) {
+          afterNuke.push([url, valueA, valueB]);
+      }
   }
 
+  // Reduce all URLs to one slash and part: /test
+  let shortUrl = [];
+  for (let i = 0; i < afterNuke.length; i++) {
+      // Piece up the data
+      let url = afterNuke[i][0];
+      let parts = url.split('/');
+      let valueA = afterNuke[i][1];
+      let valueB = afterNuke[i][2];
+      shortUrl.push(['/' + parts[1], valueA, valueB]);
+  }
+
+
   let urlMap = new Map();
-  for (let i = 0; i < trimmedData.length; i++) {
-      let url = trimmedData[i][0];
-      let valueA = trimmedData[i][1];
-      let valueB = trimmedData[i][2];
+  for (let i = 0; i < shortUrl.length; i++) {
+      let url = shortUrl[i][0];
+      let valueA = shortUrl[i][1];
+      let valueB = shortUrl[i][2];
 
       if (urlMap.has(url)) {
           let sum = urlMap.get(url);
@@ -31,29 +40,18 @@ function trafficDataClean() {
           sum[2] += valueB; // Add valueB
           urlMap.set(url, sum);
       } else {
-          urlMap.set(url, [url, valueA || 0, valueB || 0]);
+          urlMap.set(url, [url, valueA, valueB]);
       }
   }
-
-  // Construct the final array
   let finalArray = Array.from(urlMap.values());
-
-  // Ensure each row has three columns
-  finalArray.forEach(row => {
-    while (row.length < 3) {
-      row.push(''); // Fill with empty string if less than 3 columns
-    }
-  });
 
   return finalArray;
 }
 
-// Call the function and store the result
-var combinedData = trafficDataClean();
-
+var finalArray = trafficDataClean();
 // Update the sheet with the finalized data
 var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 sheet.clear(); // Clear existing data from the sheet
-var range = sheet.getRange(1, 1, combinedData.length, 3); // Force 3 columns
-range.setValues(combinedData);
+var range = sheet.getRange(1, 1, finalArray.length, finalArray[0].length);
+range.setValues(finalArray);
 sheet.sort(1);
