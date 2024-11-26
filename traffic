@@ -15,25 +15,34 @@ function trafficDataClean() {
           afterNuke.push([url, valueA, valueB]);
       }
   }
-
-  // Reduce all URLs to one slash and part: /test
+  
+  // Reduce all URLs to have three slashes and parts and remove rows without 3 parts
   let shortUrl = [];
   for (let i = 0; i < afterNuke.length; i++) {
-      // Piece up the data
+      // Split the data
       let url = afterNuke[i][0];
       let parts = url.split('/');
-      let valueA = afterNuke[i][1];
-      let valueB = afterNuke[i][2];
-      shortUrl.push(['/' + parts[1], valueA, valueB]);
+  
+      // Only continue if the URL has at least 3 parts
+      if (parts.length >= 4) {
+          let valueA = afterNuke[i][1];
+          let valueB = afterNuke[i][2];
+  
+          // Construct a new URL with exactly 3 parts after the slash
+          let newUrl = '/' + parts[1] + '/' + parts[2] + '/' + parts[3];
+  
+          // Add the new URL with valueA and valueB to the array
+          shortUrl.push([newUrl, valueA, valueB]);
+      }
   }
-
-
+  
+  // Aggregate the data using a Map
   let urlMap = new Map();
   for (let i = 0; i < shortUrl.length; i++) {
       let url = shortUrl[i][0];
       let valueA = shortUrl[i][1];
       let valueB = shortUrl[i][2];
-
+  
       if (urlMap.has(url)) {
           let sum = urlMap.get(url);
           sum[1] += valueA; // Add valueA
